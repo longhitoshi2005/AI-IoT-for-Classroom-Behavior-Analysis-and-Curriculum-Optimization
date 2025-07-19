@@ -110,13 +110,6 @@ python up4000_deploy/deploy_script.py
 - Standard webcam support
 - Automatic camera detection
 
-### Android Tablet
-```bash
-python up4000_deploy/deploy_tablet_camera.py
-```
-- Supports IP Webcam app
-- WiFi connection
-
 ## Intel UP4000 Deployment
 
 ```bash
