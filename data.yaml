@@ -1,0 +1,8 @@
+train: ../dataset/processed/images/train
+val: ../dataset/processed/images/val
+nc: 3  # number of classes
+
+names:
+  0: handraise
+  1: write
+  2: read
