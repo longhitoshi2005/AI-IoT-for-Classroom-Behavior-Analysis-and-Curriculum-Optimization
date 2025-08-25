@@ -44,16 +44,16 @@ def check_gpu_availability():
             device = 'cuda'
             gpu_name = torch.cuda.get_device_name(0)
             gpu_memory = torch.cuda.get_device_properties(0).total_memory / 1024**3  # Convert to GB
-            print(f"✅ GPU detected: {gpu_name}")
-            print(f"📊 GPU memory: {gpu_memory:.1f} GB")
-            print(f"🚀 Using GPU for training - this will be much faster!")
+            print(f" GPU detected: {gpu_name}")
+            print(f" GPU memory: {gpu_memory:.1f} GB")
+            print(f" Using GPU for training - this will be much faster!")
             return device
         else:
-            print("⚠️  GPU not detected or PyTorch not installed with CUDA support")
-            print("🐌 Using CPU for training - this will be slower")
+            print("  GPU not detected or PyTorch not installed with CUDA support")
+            print(" Using CPU for training - this will be slower")
             return 'cpu'
     except ImportError:
-        print("⚠️  PyTorch not installed - will use CPU")
+        print("  PyTorch not installed - will use CPU")
         return 'cpu'
 
 def check_dataset_for_3_classes():
@@ -120,23 +120,23 @@ def train_yolo_model(resume_from_checkpoint=False):
     # Optimize batch size based on device
     if device == 'cuda':
         batch_size = 32  # RTX 3060 can handle larger batches
-        print("🔥 Using optimized settings for GPU training")
+        print(" Using optimized settings for GPU training")
     else:
         batch_size = 8   # Conservative for CPU
-        print("⚙️  Using conservative settings for CPU training")
+        print("  Using conservative settings for CPU training")
     
     try:
         # Check for existing checkpoint to resume from
         checkpoint_path = 'results/train/handraise_write_read_detection/weights/last.pt'
         
         if resume_from_checkpoint and os.path.exists(checkpoint_path):
-            print(f"📂 Found existing checkpoint: {checkpoint_path}")
-            print("🔄 Resuming training from checkpoint...")
+            print(f" Found existing checkpoint: {checkpoint_path}")
+            print(" Resuming training from checkpoint...")
             model = YOLO(checkpoint_path)  # Load from checkpoint
-            print(f"✅ Successfully loaded checkpoint - continuing training on {device.upper()}")
+            print(f" Successfully loaded checkpoint - continuing training on {device.upper()}")
         else:
             # Initialize YOLOv8 model from scratch
-            print("🆕 Starting fresh training...")
+            print(" Starting fresh training...")
             model = YOLO('yolov8s.pt')  # Start with YOLOv8 small pretrained model
         
         # Train the model
@@ -216,7 +216,7 @@ def convert_to_openvino():
 
 def resume_training_with_gpu():
     """Resume training from checkpoint with GPU acceleration"""
-    print("🚀 Resuming training with GPU acceleration...")
+    print(" Resuming training with GPU acceleration...")
     return train_yolo_model(resume_from_checkpoint=True)
 
 if __name__ == "__main__":
