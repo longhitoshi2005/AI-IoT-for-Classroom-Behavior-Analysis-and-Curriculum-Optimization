@@ -15,11 +15,11 @@ def resume_training():
     checkpoint_path = 'results/train/handraise_write_read_detection/weights/last.pt'
     
     if not os.path.exists(checkpoint_path):
-        print(f"❌ Checkpoint not found at: {checkpoint_path}")
+        print(f" Checkpoint not found at: {checkpoint_path}")
         print("Please make sure training has started and checkpoints are saved.")
         return False
     
-    print(f"📂 Found checkpoint: {checkpoint_path}")
+    print(f" Found checkpoint: {checkpoint_path}")
     
     # Check if GPU is available
     try:
@@ -27,25 +27,25 @@ def resume_training():
         if torch.cuda.is_available():
             device = 'cuda'
             gpu_name = torch.cuda.get_device_name(0)
-            print(f"✅ GPU detected: {gpu_name}")
-            print("🚀 Will resume training on GPU - much faster!")
+            print(f" GPU detected: {gpu_name}")
+            print(" Will resume training on GPU - much faster!")
             batch_size = 32  # Optimized for RTX 3060
         else:
             device = 'cpu'
-            print("⚠️ GPU not available, continuing on CPU")
+            print(" GPU not available, continuing on CPU")
             batch_size = 8
     except Exception as e:
         device = 'cpu'
         batch_size = 8
-        print(f"⚠️ GPU check failed: {e}")
+        print(f" GPU check failed: {e}")
     
     try:
         # Load model from checkpoint
-        print("🔄 Loading model from checkpoint...")
+        print("Loading model from checkpoint...")
         model = YOLO(checkpoint_path)
         
         # Resume training with new device
-        print(f"▶️ Resuming training on {device.upper()}...")
+        print(f" Resuming training on {device.upper()}...")
         results = model.train(
             data='data.yaml',                    # Path to dataset config  
             epochs=50,                           # Total epochs (will continue from where it left off)
@@ -62,21 +62,21 @@ def resume_training():
             resume=True                         # Important: Resume from checkpoint
         )
         
-        print("✅ Training resumed successfully!")
-        print(f"📊 Final results: {results}")
+        print(" Training resumed successfully!")
+        print(f" Final results: {results}")
         return True
         
     except Exception as e:
-        print(f"❌ Training failed: {e}")
+        print(f" Training failed: {e}")
         return False
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("🎯 YOLOv8 Training Resumption with GPU Acceleration")
+    print(" YOLOv8 Training Resumption with GPU Acceleration")
     print("=" * 60)
     
     # Stop current training first (manual instruction)
-    print("\n⚠️ IMPORTANT STEPS:")
+    print("\n IMPORTANT STEPS:")
     print("1. First, stop your current training (Ctrl+C in the training terminal)")
     print("2. Install PyTorch with CUDA support if not already done")
     print("3. Then run this script to resume with GPU acceleration")
@@ -84,8 +84,8 @@ if __name__ == "__main__":
     input()
     
     if resume_training():
-        print("\n🎉 Training completed successfully!")
-        print("📁 Best model saved at: results/train/handraise_write_read_detection/weights/best.pt")
+        print("\n Training completed successfully!")
+        print(" Best model saved at: results/train/handraise_write_read_detection/weights/best.pt")
     else:
-        print("\n❌ Training resumption failed!")
+        print("\n Training resumption failed!")
         sys.exit(1)
