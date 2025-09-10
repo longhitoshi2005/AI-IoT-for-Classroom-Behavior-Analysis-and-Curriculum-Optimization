@@ -235,7 +235,6 @@ raw_data/
 *.mkv
 
 # Model weights and checkpoints
-*.pt
 *.pth
 *.onnx
 *.engine
@@ -293,3 +292,4 @@ edge_device_cache/
 *.xml
 *.bin
 openvino_cache/
+!PC_deploy/models/best.pt
