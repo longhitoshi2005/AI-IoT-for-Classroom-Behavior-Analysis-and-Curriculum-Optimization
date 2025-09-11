@@ -51,21 +51,15 @@ class VideoClassroomDetector:
         self.confidence_threshold = confidence_threshold
         self.input_source = input_source
         self.is_video_file = isinstance(input_source, str) and input_source != "0"
-        
-        # Class information
-        self.class_names = {
-            0: 'handraise',
-            1: 'studying', 
-            2: 'phone_usage'
-        }
-        
-        # Original model class mapping for conversion
-        self.original_to_new_mapping = {
-            0: 0,  # handraise -> handraise
-            1: 1,  # write -> studying  
-            2: 1,  # read -> studying
-            3: 2   # phone_usage -> phone_usage
-        }
+
+        # Unified 3-class schema for deployment
+        # 0: handraise, 1: studying (write+read), 2: phone_usage
+        self.class_names = {0: 'handraise', 1: 'studying', 2: 'phone_usage'}
+
+        # Internal mapping (set after model load). If the underlying model has 4 classes
+        # (handraise, write, read, phone_usage) we collapse write+read -> studying.
+        # If the model already has 3 classes we keep identity mapping.
+        self.collapse_mapping = None  # Will be configured dynamically
         
         # Colors for each class (BGR format)
         self.class_colors = {
@@ -115,12 +109,35 @@ class VideoClassroomDetector:
         print("Loading YOLO model...")
         self.model = YOLO(str(self.model_path))
         print("Model loaded successfully!")
+        self.configure_class_mapping()
+
+        print("Deployment class schema (3-class unified):")
+        for cid, name in self.class_names.items():
+            print(f"  {cid}: {name}")
+        if self.collapse_mapping:
+            print("Underlying model had 4 classes -> collapsing write/read into studying.")
+        else:
+            print("Underlying model already matches 3-class schema (no collapse needed).")
+
+    def configure_class_mapping(self):
+        """Configure mapping based on underlying model's native class count."""
+        try:
+            native_names = self.model.names  # dict or list from ultralytics
+            if isinstance(native_names, dict):
+                native_class_count = len(native_names)
+            else:
+                native_class_count = len(list(native_names))
+        except Exception:
+            native_class_count = 3  # Fallback assumption
         
-        # Print model info
-        print(f"Model classes (remapped): {len(self.unique_behaviors)}")
-        for class_id, name in self.class_names.items():
-            print(f"   {class_id}: {name}")
-        print("Original model classes (write:1, read:2) -> studying:1")
+        if native_class_count == 4:
+            # Original 4-class model: 0 handraise, 1 write, 2 read, 3 phone_usage
+            self.collapse_mapping = {0: 0, 1: 1, 2: 1, 3: 2}
+        elif native_class_count == 3:
+            self.collapse_mapping = None  # Identity
+        else:
+            print(f"Warning: Unexpected native class count ({native_class_count}). Assuming first 3 map directly.")
+            self.collapse_mapping = None
     
     def setup_input(self):
         """Initialize video capture from file or camera"""
@@ -296,22 +313,28 @@ class VideoClassroomDetector:
                         if confidence >= self.confidence_threshold:
                             original_class_id = int(box.cls[0])
                             x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
-                            
-                            # Map original class ID to new class ID
-                            if original_class_id in self.original_to_new_mapping:
-                                new_class_id = self.original_to_new_mapping[original_class_id]
-                                display_name = self.class_names.get(new_class_id, 'unknown')
-                                
-                                detection = {
-                                    'class_id': new_class_id,
-                                    'original_class_id': original_class_id,
-                                    'class_name': display_name,
-                                    'confidence': confidence,
-                                    'bbox': [int(x1), int(y1), int(x2), int(y2)]
-                                }
-                                
-                                detections.append(detection)
-                                frame_behaviors.add(display_name)
+                            # Apply collapse mapping if present
+                            if self.collapse_mapping:
+                                if original_class_id not in self.collapse_mapping:
+                                    continue  # Skip unexpected class
+                                new_class_id = self.collapse_mapping[original_class_id]
+                            else:
+                                new_class_id = original_class_id
+
+                            if new_class_id not in self.class_names:
+                                continue
+
+                            display_name = self.class_names[new_class_id]
+
+                            detection = {
+                                'class_id': new_class_id,
+                                'original_class_id': original_class_id,
+                                'class_name': display_name,
+                                'confidence': confidence,
+                                'bbox': [int(x1), int(y1), int(x2), int(y2)]
+                            }
+                            detections.append(detection)
+                            frame_behaviors.add(display_name)
             
             # Update behavior state tracking
             self.update_behavior_states(frame_behaviors)
@@ -782,7 +805,7 @@ class VideoClassroomDetector:
             behavior_colors = {
                 'handraise': '#32CD32',
                 'studying': '#1E90FF', 
-                'phone_usage': '#FFD700'
+                'phone_usage': "#FF0022"
             }
             
             has_data = (self.frame_detections and len(self.frame_detections) > 0) or \
@@ -866,9 +889,9 @@ class VideoClassroomDetector:
             ax3.set_title('Behavior Intensity Heatmap', fontsize=14, fontweight='bold', pad=15)
             
             if self.frame_detections:
-                behaviors = ['handraise', 'studying']
-                behavior_labels = ['Hand Raise', 'Studying']
-                
+                behaviors = ['handraise', 'studying', 'phone_usage']
+                behavior_labels = ['Hand Raise', 'Studying', 'Phone Usage']
+
                 interval_minutes = 5
                 num_intervals = max(6, len(self.frame_detections) // 150)
                 
