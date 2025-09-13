@@ -1,0 +1,2 @@
+timestamp,frame,class_id,class_name,confidence,bbox
+2025-09-11 21:14:43.718993,267,1,studying,0.613479495048523,"[0, 431, 100, 480]"

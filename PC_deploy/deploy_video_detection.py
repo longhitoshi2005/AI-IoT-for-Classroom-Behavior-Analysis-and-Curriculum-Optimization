@@ -519,16 +519,16 @@ class VideoClassroomDetector:
         print("  C: Take screenshot")
         print("  Q or ESC: Quit")
         print()
-        
-        # Create output directory
-        output_path = Path(output_dir)
+
+        # Create a unique run directory for every execution
+        run_ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_path = Path(output_dir) / f"run_{run_ts}"
         output_path.mkdir(parents=True, exist_ok=True)
-        
+
         # Video writer setup
         video_writer = None
         if save_video:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            video_path = output_path / f"detection_output_{timestamp}.mp4"
+            video_path = output_path / f"detection_output_{run_ts}.mp4"
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')
             video_writer = cv2.VideoWriter(
                 str(video_path), fourcc, 20.0, 
@@ -646,7 +646,7 @@ class VideoClassroomDetector:
                     print(f"Screenshot saved: {screenshot_path}")
                 elif key == ord('s'):  # S - save results
                     self.save_results(output_path)
-                    print("Results saved!")
+                    print("Saved CSV/JSON to:", output_path)
                 elif key == ord('r'):  # R - reset counters
                     self.reset_counters()
                     print("Counters reset!")
@@ -661,10 +661,10 @@ class VideoClassroomDetector:
                 video_writer.release()
             cv2.destroyAllWindows()
             
-            # Save final results
+            # Save final results (CSV/JSON only)
             self.save_results(output_path)
             print(f"\nDetection completed!")
-            print(f"Results saved to: {output_path}")
+            print(f"Run folder: {output_path}")
             self.print_final_stats()
     
     def reset_counters(self):
@@ -755,13 +755,9 @@ class VideoClassroomDetector:
             json.dump(stats, f, indent=2)
         print(f"Enhanced statistics saved: {json_path}")
         
-        # Create enhanced behavior charts
-        self.create_enhanced_behavior_charts(output_dir, timestamp)
-        
-        # Print summary
-        print(f"\nANALYSIS FILES CREATED:")
+        # Print summary (CSV/JSON only)
+        print(f"\nFILES CREATED:")
         print(f"=" * 40)
-        print(f"Dashboard: classroom_behavior_dashboard_{timestamp}.png")
         print(f"Statistics: enhanced_session_stats_{timestamp}.json")
         if self.behavior_sessions:
             print(f"Sessions: behavior_sessions_{timestamp}.csv")
@@ -794,222 +790,8 @@ class VideoClassroomDetector:
         self.behavior_states.clear()
     
     def create_enhanced_behavior_charts(self, output_dir, timestamp):
-        """Create classroom behavior analysis dashboard"""
-        try:
-            plt.style.use('default')
-            fig = plt.figure(figsize=(16, 12))
-            fig.suptitle('Classroom Behavior Analysis Dashboard', fontsize=20, fontweight='bold', y=0.95)
-            
-            gs = fig.add_gridspec(2, 2, hspace=0.3, wspace=0.3)
-            
-            behavior_colors = {
-                'handraise': '#32CD32',
-                'studying': '#1E90FF', 
-                'phone_usage': "#FF0022"
-            }
-            
-            has_data = (self.frame_detections and len(self.frame_detections) > 0) or \
-                      (self.behavior_counts and sum(self.behavior_counts.values()) > 0)
-            
-            print(f"Creating dashboard... (Data available: {has_data})")
-            
-            # 1. Behavior Timeline
-            ax1 = fig.add_subplot(gs[0, 0])
-            ax1.set_title('Behavior Timeline', fontsize=14, fontweight='bold', pad=15)
-            
-            if self.frame_detections:
-                timeline_data = {}
-                start_time = self.frame_detections[0]['timestamp']
-                
-                for behavior in self.unique_behaviors:
-                    timeline_data[behavior] = []
-                
-                interval_seconds = 15
-                for i in range(0, max(60, len(self.frame_detections) // 4), interval_seconds):
-                    interval_end = start_time + timedelta(seconds=i + interval_seconds)
-                    
-                    interval_counts = {behavior: 0 for behavior in self.unique_behaviors}
-                    for frame_data in self.frame_detections:
-                        if start_time + timedelta(seconds=i) <= frame_data['timestamp'] < interval_end:
-                            for behavior in frame_data['behaviors']:
-                                if behavior in interval_counts:
-                                    interval_counts[behavior] += 1
-                    
-                    for behavior, count in interval_counts.items():
-                        timeline_data[behavior].append(count)
-                
-                for behavior, counts in timeline_data.items():
-                    if any(c > 0 for c in counts):
-                        color = behavior_colors.get(behavior, '#666666')
-                        label_name = 'Hand Raise' if behavior == 'handraise' else behavior.replace('_', ' ').title()
-                        ax1.plot(range(len(counts)), counts, 
-                                color=color, linewidth=2, marker='o', markersize=4,
-                                label=label_name)
-                
-                ax1.set_xlabel('Time', fontweight='bold')
-                ax1.set_ylabel('Number of Detections', fontweight='bold')
-                ax1.legend(loc='upper left', frameon=True, fancybox=True, shadow=True)
-                ax1.grid(True, alpha=0.3)
-                ax1.set_facecolor('#f8f9fa')
-            else:
-                ax1.text(0.5, 0.5, 'No timeline data available', ha='center', va='center', 
-                        transform=ax1.transAxes, fontsize=12)
-                ax1.set_facecolor('#f8f9fa')
-            
-            # 2. Behavior Distribution
-            ax2 = fig.add_subplot(gs[0, 1])
-            ax2.set_title('Total Behavior Distribution', fontsize=14, fontweight='bold', pad=15)
-            
-            if self.behavior_counts and sum(self.behavior_counts.values()) > 0:
-                labels = []
-                sizes = []
-                colors = []
-                
-                for behavior, count in self.behavior_counts.items():
-                    if count > 0:
-                        label_name = 'Hand Raise' if behavior == 'handraise' else behavior.replace('_', ' ').title()
-                        labels.append(label_name)
-                        sizes.append(count)
-                        colors.append(behavior_colors.get(behavior, '#666666'))
-                
-                wedges, texts, autotexts = ax2.pie(sizes, labels=labels, colors=colors,
-                                                  autopct='%1.1f%%', startangle=90,
-                                                  textprops={'fontweight': 'bold'})
-                
-                for autotext in autotexts:
-                    autotext.set_color('white')
-                    autotext.set_fontweight('bold')
-                    autotext.set_fontsize(10)
-            else:
-                ax2.text(0.5, 0.5, 'No behavior data available', ha='center', va='center',
-                        transform=ax2.transAxes, fontsize=12)
-            
-            # 3. Behavior Intensity Heatmap
-            ax3 = fig.add_subplot(gs[1, 0])
-            ax3.set_title('Behavior Intensity Heatmap', fontsize=14, fontweight='bold', pad=15)
-            
-            if self.frame_detections:
-                behaviors = ['handraise', 'studying', 'phone_usage']
-                behavior_labels = ['Hand Raise', 'Studying', 'Phone Usage']
-
-                interval_minutes = 5
-                num_intervals = max(6, len(self.frame_detections) // 150)
-                
-                heatmap_data = np.zeros((len(behaviors), num_intervals))
-                time_labels = []
-                
-                start_time = self.frame_detections[0]['timestamp']
-                
-                for interval_idx in range(num_intervals):
-                    interval_start = start_time + timedelta(minutes=interval_idx * interval_minutes)
-                    interval_end = interval_start + timedelta(minutes=interval_minutes)
-                    time_labels.append(f'{interval_idx}:{0:02d}')
-                    
-                    for frame_data in self.frame_detections:
-                        if interval_start <= frame_data['timestamp'] < interval_end:
-                            for behavior in frame_data['behaviors']:
-                                if behavior in behaviors:
-                                    behavior_idx = behaviors.index(behavior)
-                                    heatmap_data[behavior_idx, interval_idx] += 1
-                
-                im = ax3.imshow(heatmap_data, cmap='YlOrRd', aspect='auto')
-                
-                ax3.set_xticks(range(len(time_labels)))
-                ax3.set_xticklabels(time_labels)
-                ax3.set_yticks(range(len(behaviors)))
-                ax3.set_yticklabels(behavior_labels)
-                
-                ax3.set_xlabel('Time Intervals', fontweight='bold')
-                ax3.set_ylabel('Behaviors', fontweight='bold')
-                
-                for i in range(len(behaviors)):
-                    for j in range(len(time_labels)):
-                        count = int(heatmap_data[i, j])
-                        if count > 0:
-                            ax3.text(j, i, str(count), ha='center', va='center',
-                                   color='white' if count > heatmap_data.max()/2 else 'black',
-                                   fontweight='bold')
-            else:
-                ax3.text(0.5, 0.5, 'No heatmap data available', ha='center', va='center',
-                        transform=ax3.transAxes, fontsize=12)
-                ax3.set_facecolor('#f8f9fa')
-            
-            # 4. Engagement Score
-            ax4 = fig.add_subplot(gs[1, 1])
-            ax4.set_title('Student Engagement Score Over Time', fontsize=14, fontweight='bold', pad=15)
-            
-            if self.frame_detections:
-                engagement_scores = []
-                time_intervals = []
-                
-                interval_minutes = 5
-                num_intervals = max(6, len(self.frame_detections) // 150)
-                
-                start_time = self.frame_detections[0]['timestamp']
-                
-                for interval_idx in range(num_intervals):
-                    interval_start = start_time + timedelta(minutes=interval_idx * interval_minutes)
-                    interval_end = interval_start + timedelta(minutes=interval_minutes)
-                    time_intervals.append(interval_idx)
-                    
-                    behavior_counts = {'handraise': 0, 'studying': 0, 'phone_usage': 0}
-                    
-                    for frame_data in self.frame_detections:
-                        if interval_start <= frame_data['timestamp'] < interval_end:
-                            for behavior in frame_data['behaviors']:
-                                if behavior in behavior_counts:
-                                    behavior_counts[behavior] += 1
-                    
-                    score = (behavior_counts['handraise'] * 5 + 
-                            behavior_counts['studying'] * 4 - 
-                            behavior_counts['phone_usage'] * 2)
-                    
-                    engagement_scores.append(max(0, min(250, score * 3)))
-                
-                bars = ax4.bar(time_intervals, engagement_scores, color='#FFA500', alpha=0.8, width=0.6)
-                
-                ax4.set_xlabel('Time Interval', fontweight='bold')
-                ax4.set_ylabel('Engagement Score', fontweight='bold')
-                ax4.set_ylim(0, 250)
-                ax4.grid(True, alpha=0.3, axis='y')
-                ax4.set_facecolor('#f8f9fa')
-                
-                for bar, score in zip(bars, engagement_scores):
-                    height = bar.get_height()
-                    if height > 0:
-                        ax4.text(bar.get_x() + bar.get_width()/2., height + 5,
-                                f'{int(score)}', ha='center', va='bottom', fontweight='bold')
-            else:
-                ax4.text(0.5, 0.5, 'No engagement data available', ha='center', va='center',
-                        transform=ax4.transAxes, fontsize=12)
-                ax4.set_facecolor('#f8f9fa')
-            
-            plt.tight_layout()
-            chart_path = output_dir / f"classroom_behavior_dashboard_{timestamp}.png"
-            plt.savefig(chart_path, dpi=300, bbox_inches='tight', facecolor='white')
-            plt.close()
-            
-            print(f"Classroom Behavior Dashboard saved: {chart_path}")
-            
-        except Exception as e:
-            print(f"Dashboard creation error: {e}")
-            try:
-                print("Creating fallback dashboard...")
-                fig, ax = plt.subplots(1, 1, figsize=(10, 6))
-                ax.text(0.5, 0.5, f'Classroom Behavior Detection\n\nSession completed: {timestamp}\nTotal frames: {self.frame_count}\n\nDashboard creation issue.\nCheck dependencies: matplotlib, pandas, numpy', 
-                       ha='center', va='center', transform=ax.transAxes, fontsize=12, 
-                       bbox=dict(boxstyle="round,pad=0.3", facecolor="lightblue"))
-                ax.set_title('Detection Session Summary', fontsize=14, fontweight='bold')
-                ax.axis('off')
-                
-                fallback_path = output_dir / f"detection_summary_{timestamp}.png"
-                plt.savefig(fallback_path, dpi=300, bbox_inches='tight', facecolor='white')
-                plt.close()
-                print(f"Fallback summary saved: {fallback_path}")
-                
-            except Exception as fallback_error:
-                print(f"Fallback chart also failed: {fallback_error}")
-                print("Please check matplotlib installation: pip install matplotlib")
+        """Charts disabled by request. Keeping CSV/JSON only."""
+        print("Charts disabled: skipping PNG generation.")
     
     def print_final_stats(self):
         """Print final detection statistics"""

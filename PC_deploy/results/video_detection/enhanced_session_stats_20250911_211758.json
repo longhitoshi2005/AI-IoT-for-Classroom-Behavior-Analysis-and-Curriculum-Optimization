@@ -1,0 +1,29 @@
+{
+  "session_info": {
+    "timestamp": "20250911_211758",
+    "input_source": "0",
+    "source_type": "camera",
+    "total_frames_processed": 1007,
+    "total_frames_available": "unknown",
+    "duration_seconds": 67.2165834903717,
+    "model_path": "best.pt",
+    "confidence_threshold": 0.5
+  },
+  "behavior_analysis": {
+    "occurrence_counts": {
+      "handraise": 3,
+      "studying": 12,
+      "phone_usage": 0
+    },
+    "total_sessions": 15,
+    "average_session_durations": {
+      "handraise": 0.4797983333333334,
+      "studying": 0.11403074999999997,
+      "phone_usage": 0
+    },
+    "currently_active": []
+  },
+  "legacy_stats": {
+    "total_detections": 46
+  }
+}
