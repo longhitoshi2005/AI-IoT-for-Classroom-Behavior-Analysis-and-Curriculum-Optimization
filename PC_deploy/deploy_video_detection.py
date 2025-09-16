@@ -38,7 +38,7 @@ import sys
 class VideoClassroomDetector:
     """Video and camera based classroom behavior detection"""
     
-    def __init__(self, model_path, confidence_threshold=0.5, input_source=0):
+    def __init__(self, model_path, confidence_threshold=0.5, input_source=0, mode='learning'):
         """
         Initialize the video detector
         
@@ -46,27 +46,41 @@ class VideoClassroomDetector:
             model_path: Path to the trained YOLO model (.pt file)
             confidence_threshold: Minimum confidence for detections (0.0-1.0)
             input_source: Video file path or camera device ID (0 for default camera)
+            mode: Detection mode (learning, fighting, cheating)
         """
         self.model_path = Path(model_path)
         self.confidence_threshold = confidence_threshold
         self.input_source = input_source
         self.is_video_file = isinstance(input_source, str) and input_source != "0"
+        self.mode = mode
 
-        # Unified 3-class schema for deployment
-        # 0: handraise, 1: studying (write+read), 2: phone_usage
-        self.class_names = {0: 'handraise', 1: 'studying', 2: 'phone_usage'}
+        # Set class names and colors based on mode
+        if mode == 'learning':
+            self.class_names = {0: 'handraise', 1: 'studying', 2: 'phone_usage'}
+            self.class_colors = {
+                0: (0, 255, 0),    # Green for handraise
+                1: (255, 0, 0),    # Blue for studying
+                2: (0, 0, 255),    # Red for phone_usage
+            }
+            self.unique_behaviors = ['handraise', 'studying', 'phone_usage']
+        elif mode == 'fighting':
+            self.class_names = {0: 'fighting'}
+            self.class_colors = {0: (0, 0, 255)}  # Red for fighting
+            self.unique_behaviors = ['fighting']
+        elif mode == 'cheating':
+            self.class_names = {0: 'cheating', 1: 'not_cheating'}
+            self.class_colors = {
+                0: (0, 0, 255), # Red for cheating
+                1: (0, 255, 0), # Green for not_cheating
+            }
+            self.unique_behaviors = ['cheating', 'not_cheating']
+        else:
+            raise ValueError(f"Unknown mode: {mode}")
 
         # Internal mapping (set after model load). If the underlying model has 4 classes
         # (handraise, write, read, phone_usage) we collapse write+read -> studying.
         # If the model already has 3 classes we keep identity mapping.
         self.collapse_mapping = None  # Will be configured dynamically
-        
-        # Colors for each class (BGR format)
-        self.class_colors = {
-            0: (0, 255, 0),    # Green for handraise
-            1: (255, 0, 0),    # Blue for studying
-            2: (0, 0, 255),    # Red for phone_usage
-        }
         
         # Detection tracking
         self.detections_log = []
@@ -78,7 +92,6 @@ class VideoClassroomDetector:
         self.fps_counter = []
         
         # Behavior occurrence tracking
-        self.unique_behaviors = ['handraise', 'studying', 'phone_usage']
         self.behavior_counts = {name: 0 for name in self.unique_behaviors}
         self.current_behaviors = set()
         self.behavior_sessions = []
@@ -845,25 +858,45 @@ def main():
     """Main function with argument parsing"""
     parser = argparse.ArgumentParser(description='Video/Camera deployment for classroom behavior detection')
     
-    parser.add_argument('--model', '-m', 
-                       default='best.pt',
-                       help='Path to trained model (.pt file)')
-    
+    parser.add_argument('--mode', '-M',
+                        choices=['learning', 'fighting', 'cheating'],
+                        default='learning',
+                        help='Detection mode: learning (class), fighting (break), cheating (exam)')
+
+    parser.add_argument('--model', '-m',
+                        default=None,
+                        help='Path to trained model (.pt file). Overrides --mode if set.')
+
     parser.add_argument('--input', '-i',
-                       default='0',
-                       help='Input source: video file path or camera ID (default: 0 for camera)')
-    
+                        default='0',
+                        help='Input source: video file path or camera ID (default: 0 for camera)')
+
     parser.add_argument('--confidence', '-c', type=float, default=0.5,
-                       help='Confidence threshold (0.0-1.0)')
-    
+                        help='Confidence threshold (0.0-1.0)')
+
     parser.add_argument('--save-video', action='store_true',
-                       help='Save detection output video')
-    
+                        help='Save detection output video')
+
     parser.add_argument('--output-dir', default='results/video_detection',
-                       help='Output directory for results')
-    
+                        help='Output directory for results')
+
     args = parser.parse_args()
-    
+
+    # Map each mode to its model path (edit these paths as needed)
+    MODE_MODEL_PATHS = {
+        'learning': 'models/learning_behavior.pt',   # handraise, studying, phone_usage
+        'fighting': 'models/fighting_behavior.pt',   # fighting
+        'cheating': 'models/cheating_behavior.pt',   # cheating
+    }
+
+    # Select model path
+    if args.model:
+        model_path = args.model
+        print(f"[MODE SWITCHER] Using custom model: {model_path}")
+    else:
+        model_path = MODE_MODEL_PATHS[args.mode]
+        print(f"[MODE SWITCHER] Mode: {args.mode} → Model: {model_path}")
+
     print("Video Classroom Behavior Detection")
     print("=" * 50)
     print("CAMO + IPHONE SETUP GUIDE:")
@@ -874,7 +907,7 @@ def main():
     print("5. Wait for green light (camera active)")
     print("6. Close other camera apps")
     print("=" * 50)
-    print(f"Model: {args.model}")
+    print(f"Model: {model_path}")
     print(f"Input: {args.input}")
     print(f"Confidence: {args.confidence}")
     print(f"Save video: {args.save_video}")
@@ -900,9 +933,10 @@ def main():
         
         # Initialize detector
         detector = VideoClassroomDetector(
-            model_path=args.model,
+            model_path=model_path,
             confidence_threshold=args.confidence,
-            input_source=args.input
+            input_source=args.input,
+            mode=args.mode
         )
         
         print("Starting detection...")
