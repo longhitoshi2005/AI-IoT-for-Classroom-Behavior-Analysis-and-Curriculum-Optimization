@@ -1,0 +1,27 @@
+{
+  "session_info": {
+    "timestamp": "20250917_212331",
+    "input_source": "..\\dataset\\Video_test\\10.mp4",
+    "source_type": "video_file",
+    "total_frames_processed": 883,
+    "total_frames_available": 883,
+    "duration_seconds": 41.56405186653137,
+    "model_path": "models\\fighting_behavior.pt",
+    "confidence_threshold": 0.7
+  },
+  "behavior_analysis": {
+    "occurrence_counts": {
+      "fighting": 35
+    },
+    "total_sessions": 35,
+    "average_session_durations": {
+      "fighting": 0.1404755142857143
+    },
+    "currently_active": [
+      "fighting"
+    ]
+  },
+  "legacy_stats": {
+    "total_detections": 115
+  }
+}

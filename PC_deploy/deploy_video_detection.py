@@ -68,12 +68,11 @@ class VideoClassroomDetector:
             self.class_colors = {0: (0, 0, 255)}  # Red for fighting
             self.unique_behaviors = ['fighting']
         elif mode == 'cheating':
-            self.class_names = {0: 'cheating', 1: 'not_cheating'}
+            self.class_names = {0: 'cheating'}
             self.class_colors = {
                 0: (0, 0, 255), # Red for cheating
-                1: (0, 255, 0), # Green for not_cheating
             }
-            self.unique_behaviors = ['cheating', 'not_cheating']
+            self.unique_behaviors = ['cheating']
         else:
             raise ValueError(f"Unknown mode: {mode}")
 

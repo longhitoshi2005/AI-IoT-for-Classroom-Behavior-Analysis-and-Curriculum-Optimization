@@ -1,0 +1,31 @@
+{
+  "session_info": {
+    "timestamp": "20250917_210710",
+    "input_source": "../dataset/Video_test/5.mp4",
+    "source_type": "video_file",
+    "total_frames_processed": 968,
+    "total_frames_available": 968,
+    "duration_seconds": 70.16587376594543,
+    "model_path": "models\\learning_behavior.pt",
+    "confidence_threshold": 0.5
+  },
+  "behavior_analysis": {
+    "occurrence_counts": {
+      "handraise": 6,
+      "studying": 7,
+      "phone_usage": 0
+    },
+    "total_sessions": 13,
+    "average_session_durations": {
+      "handraise": 4.745858,
+      "studying": 8.501411714285714,
+      "phone_usage": 0
+    },
+    "currently_active": [
+      "studying"
+    ]
+  },
+  "legacy_stats": {
+    "total_detections": 2225
+  }
+}

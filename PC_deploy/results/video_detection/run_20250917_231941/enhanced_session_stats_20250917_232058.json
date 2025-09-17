@@ -1,0 +1,29 @@
+{
+  "session_info": {
+    "timestamp": "20250917_232058",
+    "input_source": "..\\dataset\\Video_test\\8.mp4",
+    "source_type": "video_file",
+    "total_frames_processed": 972,
+    "total_frames_available": 1438,
+    "duration_seconds": 77.09981417655945,
+    "model_path": "models\\cheating_behavior.pt",
+    "confidence_threshold": 0.5
+  },
+  "behavior_analysis": {
+    "occurrence_counts": {
+      "cheating": 42,
+      "not_cheating": 25
+    },
+    "total_sessions": 67,
+    "average_session_durations": {
+      "cheating": 0.4149622619047618,
+      "not_cheating": 0.7757299999999998
+    },
+    "currently_active": [
+      "not_cheating"
+    ]
+  },
+  "legacy_stats": {
+    "total_detections": 506
+  }
+}
